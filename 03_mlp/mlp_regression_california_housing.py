@@ -33,8 +33,10 @@ hidden_size = 32
 W1 = torch.randn(X_train.shape[1], hidden_size) * 0.1
 W1.requires_grad = True
 b1 = torch.zeros(hidden_size, requires_grad=True)
-W2 = torch.randn(hidden_size,1,requires_grad=True)
-b2 = torch.zeros(1,requires_grad=True)
+W2 = torch.randn(hidden_size,hidden_size,requires_grad=True)
+b2 = torch.zeros(hidden_size,requires_grad=True)
+W3 = torch.randn(hidden_size,1,requires_grad=True)
+b3 = torch.zeros(1,requires_grad=True)
 
 # 3 超参数
 lr = 0.01
@@ -44,8 +46,9 @@ epoch_count = 1000
 losses = []
 for epoch in range(epoch_count):
     # forward
-    h = relu(X_train @ W1 + b1)
-    y_pred = h @ W2 + b2
+    h1 = relu(X_train @ W1 + b1)
+    h2 = relu(h1 @ W2 + b2)
+    y_pred = h2 @ W3 + b3
 
     # loss
     loss = ((y_pred - y_train) ** 2).mean()
@@ -60,19 +63,24 @@ for epoch in range(epoch_count):
         b1 -= lr * b1.grad
         W2 -= lr * W2.grad
         b2 -= lr * b2.grad
+        W3 -= lr * W3.grad
+        b3 -= lr * b3.grad
         W1.grad.zero_()
         b1.grad.zero_()
         W2.grad.zero_()
         b2.grad.zero_()
+        W3.grad.zero_()
+        b3.grad.zero_()
 
     if epoch % 100 == 0:
         with torch.no_grad():
-            h_test = relu(X_test @ W1 + b1)
-            y_test_pred = h_test @ W2 + b2
+            h1_test = relu(X_test @ W1 + b1)
+            h2_test = relu(h1_test @ W2 + b2)
+            y_test_pred = h2_test @ W3 + b3
             test_loss = ((y_test_pred - y_test) ** 2).mean().item()
         print(f"Epoch {epoch}: train_loss={loss.item():.4f}, test_loss={test_loss:.4f}")
 
-print(f"\n网络结构：{X_train.shape[1]} → {hidden_size} → 1")
+print(f"\n网络结构：{X_train.shape[1]} → {hidden_size} → {hidden_size} → 1")
 
 # ========== 评估指标 ==========
 def compute_metrics(y_true, y_pred):
@@ -88,11 +96,13 @@ def compute_metrics(y_true, y_pred):
 
 with torch.no_grad():
     # MLP forward pass
-    h_train = relu(X_train @ W1 + b1)
-    y_train_pred = h_train @ W2 + b2
+    h1_train = relu(X_train @ W1 + b1)
+    h2_train = relu(h1_train @ W2 + b2)
+    y_train_pred = h2_train @ W3 + b3
 
-    h_test = relu(X_test @ W1 + b1)
-    y_test_pred = h_test @ W2 + b2
+    h1_test = relu(X_test @ W1 + b1)
+    h2_test = relu(h1_test @ W2 + b2)
+    y_test_pred = h2_test @ W3 + b3
 
     train_metrics = compute_metrics(y_train, y_train_pred)
     test_metrics = compute_metrics(y_test, y_test_pred)

@@ -69,7 +69,7 @@ PyTorch 的 autograd 通过 `loss.backward()` 自动完成。
 | 文件 | 数据集 | 说明 |
 |------|--------|------|
 | `mlp_classification_breast_cancer.py` | Breast Cancer | 30→32→1 架构的二分类 |
-| `mlp_regression_california_housing.py` | California Housing | 8→32→1 架构的回归 |
+| `mlp_regression_california_housing.py` | California Housing | 8→32→32→1 架构的回归 |
 | `mlp_iris.py` | Iris | 多分类（TODO） |
 
 ## 训练流程
@@ -142,21 +142,21 @@ for epoch in range(epoch_count):
 ### 网络架构
 
 ```
-输入 (8 特征) → 隐藏层 (32 单元, ReLU) → 输出层 (1 单元, 线性)
+输入 (8 特征) → 隐藏层1 (32 单元, ReLU) → 隐藏层2 (32 单元, ReLU) → 输出层 (1 单元, 线性)
 ```
 
-- 隐藏层大小：32
+- 隐藏层：2 × 32 单元
 - 学习率：0.01
 - 训练轮数：1000
 
 ### MLP vs 线性回归
 
-| 指标 | 线性回归 | MLP |
+| 指标 | 线性回归 | MLP (2 隐藏层) |
 |------|----------|-----|
-| Test R² | 0.577 | **0.694** ↑ |
-| Test RMSE | 0.744 | **0.633** ↓ |
+| Test R² | 0.577 | **0.717** ↑ |
+| Test RMSE | 0.744 | **0.609** ↓ |
 
-提升了约 **12 个百分点**，说明房价和特征之间确实存在非线性关系。
+提升了约 **14 个百分点**，说明房价和特征之间确实存在非线性关系。
 
 ### 训练结果
 
@@ -169,7 +169,7 @@ for epoch in range(epoch_count):
 ### 关键观察
 
 - **快速收敛**：约 100 轮后 Loss 就基本稳定
-- **无过拟合**：Train R² (0.714) ≈ Test R² (0.694)
+- **无过拟合**：Train R² (0.741) ≈ Test R² (0.717)
 - **拟合更好**：预测点（红）更贴近真实点（蓝）
 
 ### MLP 为什么更好？
@@ -187,7 +187,7 @@ MLP 在两种任务上都明显超过单层模型：
 | 任务 | 单层模型 | MLP | 提升 |
 |------|----------|-----|------|
 | 分类（Breast Cancer） | 98.25% acc | **99.12%** acc | +0.87% |
-| 回归（California Housing） | R² 0.577 | **R² 0.694** | +12% |
+| 回归（California Housing） | R² 0.577 | **R² 0.717** | +14% |
 
 关键收获：
 

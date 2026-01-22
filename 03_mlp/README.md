@@ -69,7 +69,7 @@ PyTorch's autograd handles this automatically with `loss.backward()`.
 | File | Dataset | Description |
 |------|---------|-------------|
 | `mlp_classification_breast_cancer.py` | Breast Cancer | Binary classification with 30→32→1 architecture |
-| `mlp_regression_california_housing.py` | California Housing | Regression with 8→32→1 architecture |
+| `mlp_regression_california_housing.py` | California Housing | Regression with 8→32→32→1 architecture |
 | `mlp_iris.py` | Iris | Multi-class classification (TODO) |
 
 ## Training Loop
@@ -142,21 +142,21 @@ Input (30 features) → Hidden (32 units, ReLU) → Output (1 unit, Sigmoid)
 ### Network Architecture
 
 ```
-Input (8 features) → Hidden (32 units, ReLU) → Output (1 unit, Linear)
+Input (8 features) → Hidden1 (32 units, ReLU) → Hidden2 (32 units, ReLU) → Output (1 unit, Linear)
 ```
 
-- Hidden size: 32
+- Hidden layers: 2 × 32 units
 - Learning rate: 0.01
 - Epochs: 1000
 
 ### MLP vs Linear Regression
 
-| Metric | Linear Regression | MLP |
+| Metric | Linear Regression | MLP (2 hidden layers) |
 |--------|-------------------|-----|
-| Test R² | 0.577 | **0.694** ↑ |
-| Test RMSE | 0.744 | **0.633** ↓ |
+| Test R² | 0.577 | **0.717** ↑ |
+| Test RMSE | 0.744 | **0.609** ↓ |
 
-**+12 percentage points improvement** - confirms nonlinear relationships in housing prices.
+**+14 percentage points improvement** - confirms nonlinear relationships in housing prices.
 
 ### Training Results
 
@@ -169,7 +169,7 @@ Input (8 features) → Hidden (32 units, ReLU) → Output (1 unit, Linear)
 ### Key Observations
 
 - **Fast convergence**: Loss stabilizes after ~100 epochs
-- **No overfitting**: Train R² (0.714) ≈ Test R² (0.694)
+- **No overfitting**: Train R² (0.741) ≈ Test R² (0.717)
 - **Better fit**: Predicted points (red) closer to actual values (blue)
 
 ### Why MLP Outperforms Linear Regression
@@ -187,7 +187,7 @@ MLP consistently outperforms single-layer models on both tasks:
 | Task | Single-Layer | MLP | Improvement |
 |------|--------------|-----|-------------|
 | Classification (Breast Cancer) | 98.25% acc | **99.12%** acc | +0.87% |
-| Regression (California Housing) | R² 0.577 | **R² 0.694** | +12% |
+| Regression (California Housing) | R² 0.577 | **R² 0.717** | +14% |
 
 Key takeaways:
 
