@@ -20,10 +20,11 @@ nn-from-scratch/
 
 ## Completed Modules
 
-| Module | Description | Docs |
-|--------|-------------|------|
-| [01_linear_regression](01_linear_regression/) | Linear Regression - Numpy manual gradient & PyTorch autograd | [README](01_linear_regression/README.md) |
-| [02_logistic_regression](02_logistic_regression/) | Logistic Regression - Sigmoid & Cross-Entropy | [README](02_logistic_regression/README.md) |
+| Module | Description | Dataset | Docs |
+|--------|-------------|---------|------|
+| [01_linear_regression](01_linear_regression/) | Linear Regression - Numpy manual gradient & PyTorch autograd | Synthetic + California Housing (R²≈0.6) | [README](01_linear_regression/README.md) |
+| [02_logistic_regression](02_logistic_regression/) | Logistic Regression - Sigmoid & Cross-Entropy | Synthetic + Breast Cancer (97% acc) | [README](02_logistic_regression/README.md) |
+| [03_mlp](03_mlp/) | Multi-Layer Perceptron - Hidden layers & ReLU activation | Breast Cancer (99% acc) | [README](03_mlp/README.md) |
 
 ## Environment Setup
 
