@@ -1,47 +1,56 @@
-# 从零实现经典神经网络
+# Neural Networks from Scratch
 
-从底层实现经典神经网络，不使用 `nn.Module`，深入理解 PyTorch 等框架和模型原理。
+[中文版](README_CN.md)
 
-## 项目结构
+Implement classic neural networks from scratch without using `nn.Module`, to deeply understand PyTorch and model principles.
+
+## Project Structure
 
 ```
-pytorch-from-scratch/
-├── 01_linear_regression/       # 线性回归
-├── 02_logistic_regression/     # 逻辑回归
-├── 03_mlp/                     # 多层感知机
-├── 04_cnn/                     # 卷积神经网络
-├── 05_rnn/                     # 循环神经网络
-├── 06_attention/               # 注意力机制 & Transformer
-├── utils/                      # 工具函数
+nn-from-scratch/
+├── 01_linear_regression/       # Linear Regression
+├── 02_logistic_regression/     # Logistic Regression
+├── 03_mlp/                     # Multi-Layer Perceptron
+├── 04_cnn/                     # Convolutional Neural Network
+├── 05_rnn/                     # Recurrent Neural Network
+├── 06_attention/               # Attention & Transformer
+├── utils/                      # Utility functions
 └── README.md
 ```
 
-## 环境搭建
+## Completed Modules
 
-### 1. 创建虚拟环境
+| Module | Description | Docs |
+|--------|-------------|------|
+| [01_linear_regression](01_linear_regression/) | Linear Regression - Numpy manual gradient & PyTorch autograd | [README](01_linear_regression/README.md) |
+| [02_logistic_regression](02_logistic_regression/) | Logistic Regression - Sigmoid & Cross-Entropy | [README](02_logistic_regression/README.md) |
+
+## Environment Setup
+
+### 1. Create Virtual Environment
 
 ```bash
-# 创建项目目录
-mkdir pytorch-from-scratch
-cd pytorch-from-scratch
+# Create project directory
+mkdir nn-from-scratch
+cd nn-from-scratch
 
-# 创建虚拟环境
+# Create virtual environment
 python3 -m venv venv
 
-# 激活虚拟环境
+# Activate virtual environment
 source venv/bin/activate  # Linux/Mac
 # Windows: venv\Scripts\activate
 ```
 
-### 2. 安装 PyTorch
+### 2. Install PyTorch
 
-**CPU 版本：**
+**CPU Version:**
 
 ```bash
 pip install torch torchvision
 ```
 
-**NVIDIA GPU 版本：**
+**NVIDIA GPU Version:**
 
 ```bash
 # CUDA 11.8
@@ -51,60 +60,60 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 ```
 
-**Apple Silicon (M1/M2/M3)：**
+**Apple Silicon (M1/M2/M3):**
 
 ```bash
-pip install torch torchvision  # 自动支持 MPS 加速
+pip install torch torchvision  # Automatically supports MPS acceleration
 ```
 
-### 3. 安装辅助工具
+### 3. Install Helper Tools
 
 ```bash
 pip install matplotlib numpy jupyter
 ```
 
-### 4. 验证安装
+### 4. Verify Installation
 
 ```python
 import torch
 
-print(f"PyTorch 版本: {torch.__version__}")
-print(f"CUDA 可用: {torch.cuda.is_available()}")
+print(f"PyTorch version: {torch.__version__}")
+print(f"CUDA available: {torch.cuda.is_available()}")
 
-# 简单测试
+# Simple test
 x = torch.tensor([1.0, 2.0], requires_grad=True)
 y = x.sum() ** 2
 y.backward()
-print(f"梯度测试: x.grad = {x.grad}")  # 应该是 [6., 6.]
+print(f"Gradient test: x.grad = {x.grad}")  # Should be [6., 6.]
 ```
 
-### 5. 保存依赖
+### 5. Save Dependencies
 
 ```bash
 pip freeze > requirements.txt
 ```
 
-## 常用命令
+## Common Commands
 
 ```bash
-# 退出虚拟环境
+# Deactivate virtual environment
 deactivate
 
-# 重新进入
+# Reactivate
 source venv/bin/activate
 
-# 查看已安装包
+# List installed packages
 pip list
 ```
 
-## 学习路线
+## Learning Path
 
-| 阶段 | 模型 | 关键概念 |
-|------|------|----------|
-| 1 | 线性回归 | 张量运算、autograd、梯度下降 |
-| 2 | 逻辑回归 | sigmoid、交叉熵、分类 |
-| 3 | MLP | 多层、激活函数、链式法则 |
-| 4 | CNN | 卷积运算、特征提取 |
-| 5 | RNN/LSTM | 时序展开、隐状态、门控 |
-| 6 | Attention | QKV、softmax、mask |
-| 7 | Transformer | 多头注意力、位置编码 |# nn-from-scratch
+| Stage | Model | Key Concepts |
+|-------|-------|--------------|
+| 1 | Linear Regression | Tensor operations, autograd, gradient descent |
+| 2 | Logistic Regression | Sigmoid, cross-entropy, classification |
+| 3 | MLP | Multi-layer, activation functions, chain rule |
+| 4 | CNN | Convolution, feature extraction |
+| 5 | RNN/LSTM | Temporal unrolling, hidden state, gating |
+| 6 | Attention | QKV, softmax, mask |
+| 7 | Transformer | Multi-head attention, positional encoding |
