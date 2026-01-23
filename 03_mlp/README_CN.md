@@ -14,21 +14,29 @@
 |---|---|---|
 | 结构 | 单层 | 多层 |
 | 表达能力 | 线性决策边界 | 非线性决策边界 |
-| 激活函数 | Sigmoid（仅输出） | ReLU（隐藏层）+ Sigmoid（输出层） |
+| 激活函数 | Sigmoid（仅输出） | ReLU（隐藏层）+ Sigmoid/Softmax（输出层） |
 | 参数 | W, b | W1, b1, W2, b2, ... |
 
 ### 2. 模型结构
 
+**二分类：**
 ```
 输入 → 隐藏层 → 输出层 → 预测
-  X  → ReLU(X@W1+b1) → Sigmoid(H@W2+b2) → y_pred
+  X  → ReLU(X@W1+b1) → Sigmoid(H@W2+b2) → y_pred (0~1)
 ```
 
-两层 MLP（一个隐藏层）：
+**多分类：**
+```
+输入 → 隐藏层 → 输出层 → 预测
+  X  → ReLU(X@W1+b1) → Softmax(H@W2+b2) → y_pred (概率分布)
+```
+
+两层 MLP：
 ```python
 def forward(X):
-    h = relu(X @ W1 + b1)      # 隐藏层 + ReLU
-    return sigmoid(h @ W2 + b2) # 输出层 + Sigmoid
+    h = relu(X @ W1 + b1)       # 隐藏层 + ReLU
+    return softmax(h @ W2 + b2) # 输出层 + Softmax（多分类）
+    # 或 sigmoid(...) 用于二分类
 ```
 
 ### 3. 激活函数
@@ -47,6 +55,13 @@ sigmoid(t) = 1 / (1 + exp(-t))
 ```
 - 映射到 (0, 1) 概率
 - 二分类输出层使用
+
+**Softmax**
+```python
+softmax(t) = exp(t) / sum(exp(t))
+```
+- 映射到概率分布（总和 = 1）
+- 多分类输出层使用
 
 ### 4. 隐藏层的作用
 
@@ -70,27 +85,39 @@ PyTorch 的 autograd 通过 `loss.backward()` 自动完成。
 |------|--------|------|
 | `mlp_classification_breast_cancer.py` | Breast Cancer | 30→32→1 架构的二分类 |
 | `mlp_regression_california_housing.py` | California Housing | 8→32→32→1 架构的回归 |
-| `mlp_iris.py` | Iris | 多分类（TODO） |
+| `mlp_iris.py` | Iris | 4→32→3 架构的多分类 |
 
 ## 训练流程
 
+**二分类：**
 ```python
 for epoch in range(epoch_count):
-    # 1. 前向传播（两层）
+    # 1. 前向传播
     h = relu(X @ W1 + b1)
     y_pred = sigmoid(h @ W2 + b2)
 
-    # 2. 计算损失（交叉熵）
+    # 2. 二元交叉熵损失
     loss = -(y_true * log(y_pred) + (1 - y_true) * log(1 - y_pred)).mean()
 
-    # 3. 反向传播
+    # 3. 反向传播 & 更新
     loss.backward()
+    W1 -= lr * W1.grad; W2 -= lr * W2.grad
+```
 
-    # 4. 更新所有参数
-    W1 -= lr * W1.grad
-    b1 -= lr * b1.grad
-    W2 -= lr * W2.grad
-    b2 -= lr * b2.grad
+**多分类：**
+```python
+for epoch in range(epoch_count):
+    # 1. 前向传播 + softmax
+    h = relu(X @ W1 + b1)
+    y_pred = softmax(h @ W2 + b2)  # 输出: (n, num_classes)
+
+    # 2. 多分类交叉熵损失
+    y_onehot = one_hot(y_true, num_classes)
+    loss = -(y_onehot * log(y_pred)).sum(dim=1).mean()
+
+    # 3. 反向传播 & 更新
+    loss.backward()
+    W1 -= lr * W1.grad; W2 -= lr * W2.grad
 ```
 
 ---
@@ -180,13 +207,73 @@ for epoch in range(epoch_count):
 
 ---
 
+## Iris 多分类结果
+
+### 网络架构
+
+```
+输入 (4 特征) → 隐藏层 (32 单元, ReLU) → 输出层 (3 单元, Softmax)
+```
+
+- 隐藏层大小：32
+- 学习率：0.1
+- 训练轮数：3000
+
+### 与二分类的关键区别
+
+| 方面 | 二分类（乳腺癌） | 多分类（Iris） |
+|------|------------------|----------------|
+| 输出层 | 1 单元 + Sigmoid | 3 单元 + Softmax |
+| 输出形状 | (n, 1) | (n, 3) |
+| 标签格式 | 0/1 浮点数 | 0/1/2 整数（或 one-hot） |
+| 损失函数 | 二元交叉熵 | 多分类交叉熵 |
+| 预测方式 | `y_pred > 0.5` | `y_pred.argmax(dim=1)` |
+
+### Softmax 函数
+
+```python
+def softmax(t):
+    exp_t = torch.exp(t - t.max(dim=1, keepdim=True).values)  # 数值稳定性
+    return exp_t / exp_t.sum(dim=1, keepdim=True)
+```
+
+将输出映射为所有类别的概率分布（总和 = 1）。
+
+### 多分类交叉熵损失
+
+```python
+# 将标签转为 one-hot 编码
+y_onehot = (y.unsqueeze(1) == torch.arange(num_classes)).float()
+
+# 交叉熵: -sum(y_onehot * log(y_pred)) / n
+loss = -(y_onehot * torch.log(y_pred + 1e-8)).sum(dim=1).mean()
+```
+
+### 训练结果
+
+![MLP Iris 分类结果](Figure_mlp_iris.png)
+
+- **左图**：训练损失曲线（交叉熵）
+- **中图**：混淆矩阵（3×3），展示 setosa、versicolor、virginica 的预测情况
+- **右图**：PCA 降维后的测试集可视化，3 种颜色对应 3 个类别
+
+### 关键观察
+
+- **训练集准确率**：98.33%（118/120）
+- **测试集准确率**：100%（30/30）
+- **清晰分离**：Setosa 完美分类（线性可分）
+- **快速收敛**：前 200 轮 Loss 快速下降，之后趋于稳定
+
+---
+
 ## 结论
 
-MLP 在两种任务上都明显超过单层模型：
+MLP 在所有任务上都明显超过单层模型：
 
 | 任务 | 单层模型 | MLP | 提升 |
 |------|----------|-----|------|
-| 分类（Breast Cancer） | 98.25% acc | **99.12%** acc | +0.87% |
+| 二分类（Breast Cancer） | 98.25% acc | **99.12%** acc | +0.87% |
+| 多分类（Iris） | - | **98-100%** acc | Softmax + CE |
 | 回归（California Housing） | R² 0.577 | **R² 0.717** | +14% |
 
 关键收获：
@@ -194,4 +281,5 @@ MLP 在两种任务上都明显超过单层模型：
 1. **隐藏层增强能力** - 即使一个隐藏层也能显著提升性能
 2. **ReLU 激活** 使训练更高效
 3. **万能近似** - MLP 可以拟合复杂的非线性模式
-4. **权衡**：参数更多，但在中小数据集上训练仍然很快
+4. **Softmax 用于多分类** - 将二分类扩展到 N 个类别
+5. **权衡**：参数更多，但在中小数据集上训练仍然很快

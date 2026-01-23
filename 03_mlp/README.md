@@ -14,21 +14,29 @@ Implement multi-layer neural networks with hidden layers and nonlinear activatio
 |---|---|---|
 | Structure | Single layer | Multiple layers |
 | Expressiveness | Linear decision boundary | Nonlinear decision boundary |
-| Activation | Sigmoid (output only) | ReLU (hidden) + Sigmoid (output) |
+| Activation | Sigmoid (output only) | ReLU (hidden) + Sigmoid/Softmax (output) |
 | Parameters | W, b | W1, b1, W2, b2, ... |
 
 ### 2. Model Structure
 
+**Binary Classification:**
 ```
 Input → Hidden Layer → Output Layer → Prediction
-  X   →  ReLU(X@W1+b1) → Sigmoid(H@W2+b2) → y_pred
+  X   →  ReLU(X@W1+b1) → Sigmoid(H@W2+b2) → y_pred (0~1)
 ```
 
-Two-layer MLP (one hidden layer):
+**Multi-class Classification:**
+```
+Input → Hidden Layer → Output Layer → Prediction
+  X   →  ReLU(X@W1+b1) → Softmax(H@W2+b2) → y_pred (probabilities)
+```
+
+Two-layer MLP:
 ```python
 def forward(X):
-    h = relu(X @ W1 + b1)      # Hidden layer with ReLU
-    return sigmoid(h @ W2 + b2) # Output layer with Sigmoid
+    h = relu(X @ W1 + b1)       # Hidden layer with ReLU
+    return softmax(h @ W2 + b2) # Output layer with Softmax (multi-class)
+    # or sigmoid(...) for binary classification
 ```
 
 ### 3. Activation Functions
@@ -47,6 +55,13 @@ sigmoid(t) = 1 / (1 + exp(-t))
 ```
 - Maps to (0, 1) probability
 - Used in output layer for binary classification
+
+**Softmax**
+```python
+softmax(t) = exp(t) / sum(exp(t))
+```
+- Maps to probability distribution (sum = 1)
+- Used in output layer for multi-class classification
 
 ### 4. Why Hidden Layers Matter
 
@@ -70,27 +85,39 @@ PyTorch's autograd handles this automatically with `loss.backward()`.
 |------|---------|-------------|
 | `mlp_classification_breast_cancer.py` | Breast Cancer | Binary classification with 30→32→1 architecture |
 | `mlp_regression_california_housing.py` | California Housing | Regression with 8→32→32→1 architecture |
-| `mlp_iris.py` | Iris | Multi-class classification (TODO) |
+| `mlp_iris.py` | Iris | Multi-class classification with 4→32→3 architecture |
 
 ## Training Loop
 
+**Binary Classification:**
 ```python
 for epoch in range(epoch_count):
-    # 1. Forward pass (two layers)
+    # 1. Forward pass
     h = relu(X @ W1 + b1)
     y_pred = sigmoid(h @ W2 + b2)
 
-    # 2. Compute loss (cross-entropy)
+    # 2. Binary cross-entropy loss
     loss = -(y_true * log(y_pred) + (1 - y_true) * log(1 - y_pred)).mean()
 
-    # 3. Backward pass
+    # 3. Backward & update
     loss.backward()
+    W1 -= lr * W1.grad; W2 -= lr * W2.grad
+```
 
-    # 4. Update all parameters
-    W1 -= lr * W1.grad
-    b1 -= lr * b1.grad
-    W2 -= lr * W2.grad
-    b2 -= lr * b2.grad
+**Multi-class Classification:**
+```python
+for epoch in range(epoch_count):
+    # 1. Forward pass with softmax
+    h = relu(X @ W1 + b1)
+    y_pred = softmax(h @ W2 + b2)  # Output: (n, num_classes)
+
+    # 2. Multi-class cross-entropy loss
+    y_onehot = one_hot(y_true, num_classes)
+    loss = -(y_onehot * log(y_pred)).sum(dim=1).mean()
+
+    # 3. Backward & update
+    loss.backward()
+    W1 -= lr * W1.grad; W2 -= lr * W2.grad
 ```
 
 ---
@@ -180,13 +207,73 @@ Input (8 features) → Hidden1 (32 units, ReLU) → Hidden2 (32 units, ReLU) →
 
 ---
 
+## Iris Multi-class Classification Results
+
+### Network Architecture
+
+```
+Input (4 features) → Hidden (32 units, ReLU) → Output (3 units, Softmax)
+```
+
+- Hidden size: 32
+- Learning rate: 0.1
+- Epochs: 3000
+
+### Key Differences from Binary Classification
+
+| Aspect | Binary (Breast Cancer) | Multi-class (Iris) |
+|--------|------------------------|---------------------|
+| Output layer | 1 unit + Sigmoid | 3 units + Softmax |
+| Output shape | (n, 1) | (n, 3) |
+| Label format | 0/1 float | 0/1/2 long (or one-hot) |
+| Loss function | Binary Cross-Entropy | Categorical Cross-Entropy |
+| Prediction | `y_pred > 0.5` | `y_pred.argmax(dim=1)` |
+
+### Softmax Function
+
+```python
+def softmax(t):
+    exp_t = torch.exp(t - t.max(dim=1, keepdim=True).values)  # Numerical stability
+    return exp_t / exp_t.sum(dim=1, keepdim=True)
+```
+
+Maps outputs to probability distribution over all classes (sum = 1).
+
+### Multi-class Cross-Entropy Loss
+
+```python
+# One-hot encode labels
+y_onehot = (y.unsqueeze(1) == torch.arange(num_classes)).float()
+
+# Cross-entropy: -sum(y_onehot * log(y_pred)) / n
+loss = -(y_onehot * torch.log(y_pred + 1e-8)).sum(dim=1).mean()
+```
+
+### Training Results
+
+![MLP Iris Classification Result](Figure_mlp_iris.png)
+
+- **Left**: Training loss curve (Cross-Entropy)
+- **Middle**: Confusion matrix (3×3) showing predictions for setosa, versicolor, virginica
+- **Right**: PCA projection of test set with 3 colors for 3 classes
+
+### Key Observations
+
+- **Train accuracy**: 98.33% (118/120)
+- **Test accuracy**: 100% (30/30)
+- **Clear separation**: Setosa is perfectly classified (linearly separable)
+- **Fast convergence**: Loss drops quickly in first 200 epochs, then stabilizes
+
+---
+
 ## Conclusion
 
-MLP consistently outperforms single-layer models on both tasks:
+MLP consistently outperforms single-layer models on all tasks:
 
 | Task | Single-Layer | MLP | Improvement |
 |------|--------------|-----|-------------|
-| Classification (Breast Cancer) | 98.25% acc | **99.12%** acc | +0.87% |
+| Binary Classification (Breast Cancer) | 98.25% acc | **99.12%** acc | +0.87% |
+| Multi-class Classification (Iris) | - | **98-100%** acc | Softmax + CE |
 | Regression (California Housing) | R² 0.577 | **R² 0.717** | +14% |
 
 Key takeaways:
@@ -194,4 +281,5 @@ Key takeaways:
 1. **Hidden layers add power** - even one hidden layer significantly improves performance
 2. **ReLU activation** enables efficient training
 3. **Universal approximation** - MLP can fit complex nonlinear patterns
-4. **Trade-off**: More parameters but still fast to train on small-medium datasets
+4. **Softmax for multi-class** - extends binary classification to N classes
+5. **Trade-off**: More parameters but still fast to train on small-medium datasets
