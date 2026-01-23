@@ -1,6 +1,3 @@
-import os
-os.environ['TK_SILENCE_DEPRECATION'] = '1'
-
 import torch
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
