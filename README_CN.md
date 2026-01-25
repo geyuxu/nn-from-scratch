@@ -25,6 +25,7 @@ nn-from-scratch/
 | [01_linear_regression](01_linear_regression/) | 线性回归 - Numpy手动梯度 & PyTorch自动微分 | 合成数据 + California Housing (R²≈0.6) | [README](01_linear_regression/README_CN.md) |
 | [02_logistic_regression](02_logistic_regression/) | 逻辑回归 - Sigmoid & 交叉熵 | 合成数据 + Breast Cancer (97% acc) | [README](02_logistic_regression/README_CN.md) |
 | [03_mlp](03_mlp/) | 多层感知机 - 隐藏层 & ReLU/Softmax激活 | Breast Cancer (99% acc) + Iris (100% acc) + California Housing (R²≈0.7) | [README](03_mlp/README_CN.md) |
+| [04_cnn](04_cnn/) | 卷积神经网络 - 卷积、池化 & 空间特征 | MNIST (98.3% acc) + CIFAR-10 | [README](04_cnn/README_CN.md) |
 
 ## 环境搭建
 
