@@ -320,7 +320,7 @@ total_params = sum(p.numel() for p in model.parameters())
 logger.log(f"总参数量: {total_params:,} ({total_params/1e6:.1f}M)")
 
 batch_size = 64  # VGG16 较大，用小 batch
-epochs = 30  # 增加 epoch，因为数据增强需要更多训练
+epochs = 100  # 增加 epoch，因为数据增强需要更多训练
 lr = 0.01
 weight_decay = 5e-4  # L2 正则化
 
@@ -328,100 +328,139 @@ train_losses = []
 train_accs = []
 test_accs = []
 best_test_acc = 0
+best_params = None  # 保存最佳参数
 
 logger.log("\n开始训练...")
 logger.log(f"超参数: batch_size={batch_size}, epochs={epochs}, lr={lr}, weight_decay={weight_decay}")
 logger.log("改进: 数据增强(翻转+裁剪) + 小FC(512) + L2正则化")
 logger.log("-" * 60)
 
-for epoch in range(epochs):
-    model.train()
-    epoch_loss = 0
-    epoch_correct = 0
-    epoch_total = 0
+try:
+    for epoch in range(epochs):
+        model.train()
+        epoch_loss = 0
+        epoch_correct = 0
+        epoch_total = 0
 
-    # 打乱数据
-    perm = torch.randperm(len(X_train))
-    X_train_shuffled = X_train[perm]
-    y_train_shuffled = y_train[perm]
+        # 打乱数据
+        perm = torch.randperm(len(X_train))
+        X_train_shuffled = X_train[perm]
+        y_train_shuffled = y_train[perm]
 
-    for i in range(0, len(X_train), batch_size):
-        X = X_train_shuffled[i:i+batch_size]
-        y = y_train_shuffled[i:i+batch_size]
+        for i in range(0, len(X_train), batch_size):
+            X = X_train_shuffled[i:i+batch_size]
+            y = y_train_shuffled[i:i+batch_size]
 
-        # 数据增强
-        X = augment_batch(X)
+            # 数据增强
+            X = augment_batch(X)
 
-        # 前向
-        out = model.forward(X)
-        pred = out.argmax(dim=1)
-
-        # 损失
-        loss = cross_entropy(out, y)
-
-        # 统计
-        epoch_loss += loss.item() * len(y)
-        epoch_correct += (pred == y).sum().item()
-        epoch_total += len(y)
-
-        # 反向
-        loss.backward()
-
-        # 更新参数 (带 L2 正则化)
-        with torch.no_grad():
-            for param in model.parameters():
-                param -= lr * (param.grad + weight_decay * param)  # L2 正则化
-                param.grad.zero_()
-
-        # 打印进度
-        if (i // batch_size) % 100 == 0:
-            logger.log(f"  Batch {i//batch_size}/{len(X_train)//batch_size}, loss={loss.item():.4f}")
-
-    # Epoch 统计
-    train_loss = epoch_loss / epoch_total
-    train_acc = epoch_correct / epoch_total
-
-    # 测试集评估（分批处理，避免内存溢出）
-    model.eval()
-    test_correct = 0
-    test_preds = []
-    with torch.no_grad():
-        for i in range(0, len(X_test), batch_size):
-            X_batch = X_test[i:i+batch_size]
-            y_batch = y_test[i:i+batch_size]
-            out = model.forward(X_batch)
+            # 前向
+            out = model.forward(X)
             pred = out.argmax(dim=1)
-            test_correct += (pred == y_batch).sum().item()
-            test_preds.append(pred)
-    test_acc = test_correct / len(X_test)
-    test_pred = torch.cat(test_preds)
 
-    train_losses.append(train_loss)
-    train_accs.append(train_acc)
-    test_accs.append(test_acc)
+            # 损失
+            loss = cross_entropy(out, y)
 
-    # 记录最佳
-    if test_acc > best_test_acc:
-        best_test_acc = test_acc
-        best_epoch = epoch
-        logger.log(f"Epoch {epoch}: train_loss={train_loss:.4f}, train_acc={train_acc:.4f}, test_acc={test_acc:.4f} [NEW BEST]")
-    else:
-        logger.log(f"Epoch {epoch}: train_loss={train_loss:.4f}, train_acc={train_acc:.4f}, test_acc={test_acc:.4f}")
+            # 统计
+            epoch_loss += loss.item() * len(y)
+            epoch_correct += (pred == y).sum().item()
+            epoch_total += len(y)
 
-    # 学习率衰减
-    if (epoch + 1) % 15 == 0:
-        lr *= 0.1
-        logger.log(f"  学习率衰减到 {lr}")
+            # 反向
+            loss.backward()
 
+            # 更新参数 (带 L2 正则化)
+            with torch.no_grad():
+                for param in model.parameters():
+                    param -= lr * (param.grad + weight_decay * param)  # L2 正则化
+                    param.grad.zero_()
+
+            # 打印进度
+            if (i // batch_size) % 100 == 0:
+                logger.log(f"  Batch {i//batch_size}/{len(X_train)//batch_size}, loss={loss.item():.4f}")
+
+        # Epoch 统计
+        train_loss = epoch_loss / epoch_total
+        train_acc = epoch_correct / epoch_total
+
+        # 测试集评估（分批处理，避免内存溢出）
+        model.eval()
+        test_correct = 0
+        test_preds = []
+        with torch.no_grad():
+            for i in range(0, len(X_test), batch_size):
+                X_batch = X_test[i:i+batch_size]
+                y_batch = y_test[i:i+batch_size]
+                out = model.forward(X_batch)
+                pred = out.argmax(dim=1)
+                test_correct += (pred == y_batch).sum().item()
+                test_preds.append(pred)
+        test_acc = test_correct / len(X_test)
+        test_pred = torch.cat(test_preds)
+
+        train_losses.append(train_loss)
+        train_accs.append(train_acc)
+        test_accs.append(test_acc)
+
+        # 记录最佳
+        if test_acc > best_test_acc:
+            best_test_acc = test_acc
+            best_epoch = epoch
+            # 保存最佳参数（深拷贝）
+            best_params = [p.detach().clone() for p in model.parameters()]
+            logger.log(f"Epoch {epoch}: train_loss={train_loss:.4f}, train_acc={train_acc:.4f}, test_acc={test_acc:.4f} [NEW BEST - saved]")
+        else:
+            logger.log(f"Epoch {epoch}: train_loss={train_loss:.4f}, train_acc={train_acc:.4f}, test_acc={test_acc:.4f}")
+
+        # 学习率衰减
+        if (epoch + 1) % 15 == 0:
+            lr *= 0.1
+            logger.log(f"  学习率衰减到 {lr}")
+
+except KeyboardInterrupt:
+    logger.log("\n" + "=" * 60)
+    logger.log("训练被中断！")
 
 # ==================== 最终评估 ====================
 
 logger.log("\n" + "=" * 60)
 logger.log("=== 最终评估 ===")
-logger.log(f"最终测试准确率: {test_accs[-1]:.4f}")
-logger.log(f"最佳测试准确率: {best_test_acc:.4f} (Epoch {best_epoch})")
-logger.log(f"最终训练准确率: {train_accs[-1]:.4f}")
-logger.log(f"过拟合差距: {train_accs[-1] - test_accs[-1]:.4f} (越小越好)")
+
+if len(test_accs) > 0:
+    logger.log(f"完成 Epoch 数: {len(test_accs)}/{epochs}")
+    logger.log(f"最终测试准确率: {test_accs[-1]:.4f}")
+    logger.log(f"最佳测试准确率: {best_test_acc:.4f} (Epoch {best_epoch})")
+    logger.log(f"最终训练准确率: {train_accs[-1]:.4f}")
+    logger.log(f"过拟合差距: {train_accs[-1] - test_accs[-1]:.4f} (越小越好)")
+else:
+    logger.log("未完成任何 epoch，无法评估")
+
+# 恢复最佳参数
+if best_params is not None:
+    with torch.no_grad():
+        for param, best_p in zip(model.parameters(), best_params):
+            param.copy_(best_p)
+    logger.log(f"已恢复最佳参数 (Epoch {best_epoch})")
+
+    # 保存最佳模型到文件
+    checkpoint = {
+        'epoch': best_epoch,
+        'test_acc': best_test_acc,
+        'params': {f'param_{i}': p.cpu() for i, p in enumerate(best_params)}
+    }
+    checkpoint_path = f"04_cnn/vgg16_cifar10_v2_best_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pt"
+    torch.save(checkpoint, checkpoint_path)
+    logger.log(f"最佳模型已保存到: {checkpoint_path}")
+
+    # 用最佳参数重新评估测试集
+    model.eval()
+    test_preds = []
+    with torch.no_grad():
+        for i in range(0, len(X_test), batch_size):
+            X_batch = X_test[i:i+batch_size]
+            out = model.forward(X_batch)
+            test_preds.append(out.argmax(dim=1))
+    test_pred = torch.cat(test_preds)
 
 
 # ==================== 绘制报告 ====================
