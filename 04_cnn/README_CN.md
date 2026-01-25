@@ -265,6 +265,10 @@ if test_acc > best_test_acc:
 
 ### v1 与 v2 训练曲线对比
 
-| v1（过拟合） | v2（正则化） |
-|:---:|:---:|
-| ![v1](Figure_vgg16_cifar10.png) | ![v2](Figure_vgg16_cifar10_v2.png) |
+**v1（过拟合）**
+
+![v1](Figure_vgg16_cifar10.png)
+
+**v2（正则化）**
+
+![v2](Figure_vgg16_cifar10_v2.png)

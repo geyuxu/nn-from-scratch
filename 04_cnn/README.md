@@ -265,6 +265,10 @@ if test_acc > best_test_acc:
 
 ### v1 vs v2 Training Curves
 
-| v1 (Overfitting) | v2 (Regularized) |
-|:---:|:---:|
-| ![v1](Figure_vgg16_cifar10.png) | ![v2](Figure_vgg16_cifar10_v2.png) |
+**v1 (Overfitting)**
+
+![v1](Figure_vgg16_cifar10.png)
+
+**v2 (Regularized)**
+
+![v2](Figure_vgg16_cifar10_v2.png)
