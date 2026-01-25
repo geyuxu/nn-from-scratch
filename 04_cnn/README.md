@@ -158,3 +158,16 @@ b2 = torch.zeros(10, requires_grad=True)
 | 9 | 0.0922 | 97.1% | **98.3%** |
 
 ![CNN MNIST Result](Figure_cnn_mnist.png)
+
+### CIFAR-10 VGG16 (vgg16_cifar10.py)
+
+| Epoch | Train Loss | Train Acc | Test Acc |
+|-------|------------|-----------|----------|
+| 0 | 1.9950 | 25.0% | 24.2% |
+| 9 | 0.4949 | 83.0% | 63.0% |
+| 10 | 0.2600 | 91.4% | 76.0% |
+| 19 | 0.0308 | 99.4% | **75.6%** |
+
+**Note**: Overfitting observed (train 99.4% vs test 75.6%), due to large VGG16 model (~33M params) without data augmentation.
+
+![VGG16 CIFAR-10 Result](Figure_vgg16_cifar10.png)
