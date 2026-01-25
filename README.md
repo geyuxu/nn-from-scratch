@@ -60,6 +60,9 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 
 # CUDA 12.1
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# CUDA 12.8 for rtx 50xx
+pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 ```
 
 **Apple Silicon (M1/M2/M3):**
