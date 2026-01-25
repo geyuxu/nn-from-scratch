@@ -1,9 +1,11 @@
 """
 VGG16 for CIFAR-10 v2 (类结构，不使用 nn.Module)
 
-改进版本：
-- 添加日志输出到文件
-- 保留控制台打印
+改进版本（解决过拟合）：
+- 数据增强：随机水平翻转、随机裁剪
+- 减小 FC 层：4096 -> 512
+- L2 正则化（权重衰减）
+- 日志输出到文件
 
 VGG16 架构 (16 weight layers):
 - Block 1: Conv64 -> Conv64 -> MaxPool
@@ -11,7 +13,7 @@ VGG16 架构 (16 weight layers):
 - Block 3: Conv256 -> Conv256 -> Conv256 -> MaxPool
 - Block 4: Conv512 -> Conv512 -> Conv512 -> MaxPool
 - Block 5: Conv512 -> Conv512 -> Conv512 -> MaxPool
-- FC: 512 -> 4096 -> 4096 -> 10
+- FC: 512 -> 512 -> 512 -> 10 (减小)
 """
 from torchvision import datasets, transforms
 import torch
@@ -116,6 +118,36 @@ def cross_entropy(y_pred, y_true):
     return -torch.log(y_pred[range(batch), y_true] + 1e-8).mean()
 
 
+# ==================== 数据增强 ====================
+
+def random_horizontal_flip(X, p=0.5):
+    """随机水平翻转"""
+    mask = torch.rand(X.shape[0], device=X.device) < p
+    X[mask] = X[mask].flip(dims=[3])  # 翻转 W 维度
+    return X
+
+
+def random_crop(X, padding=4):
+    """随机裁剪（先 padding 再裁剪回原尺寸）"""
+    batch, c, h, w = X.shape
+    # Padding
+    X_padded = torch.nn.functional.pad(X, (padding, padding, padding, padding))
+    # 随机裁剪位置
+    crops = []
+    for i in range(batch):
+        top = torch.randint(0, 2 * padding + 1, (1,)).item()
+        left = torch.randint(0, 2 * padding + 1, (1,)).item()
+        crops.append(X_padded[i:i+1, :, top:top+h, left:left+w])
+    return torch.cat(crops, dim=0)
+
+
+def augment_batch(X):
+    """应用数据增强"""
+    X = random_horizontal_flip(X.clone(), p=0.5)
+    X = random_crop(X, padding=4)
+    return X
+
+
 # ==================== 层类 ====================
 
 class Conv2D:
@@ -160,7 +192,7 @@ class VGG16:
     Block 3: Conv256 -> ReLU -> Conv256 -> ReLU -> Conv256 -> ReLU -> MaxPool (8->4)
     Block 4: Conv512 -> ReLU -> Conv512 -> ReLU -> Conv512 -> ReLU -> MaxPool (4->2)
     Block 5: Conv512 -> ReLU -> Conv512 -> ReLU -> Conv512 -> ReLU -> MaxPool (2->1)
-    FC: 512 -> 4096 -> ReLU -> Dropout -> 4096 -> ReLU -> Dropout -> 10 -> Softmax
+    FC: 512 -> 512 -> ReLU -> Dropout -> 512 -> ReLU -> Dropout -> 10 -> Softmax (减小FC防过拟合)
     """
     def __init__(self, device='cpu'):
         self.device = device
@@ -188,12 +220,12 @@ class VGG16:
         self.conv5_2 = Conv2D(512, 512, 3, padding=1, device=device)
         self.conv5_3 = Conv2D(512, 512, 3, padding=1, device=device)
 
-        # FC layers
+        # FC layers (减小以防止过拟合)
         # 32 -> pool -> 16 -> pool -> 8 -> pool -> 4 -> pool -> 2 -> pool -> 1
         # FC 输入: 512 * 1 * 1 = 512
-        self.fc1 = Dense(512, 4096, device)
-        self.fc2 = Dense(4096, 4096, device)
-        self.fc3 = Dense(4096, 10, device)
+        self.fc1 = Dense(512, 512, device)  # 减小: 4096 -> 512
+        self.fc2 = Dense(512, 512, device)  # 减小: 4096 -> 512
+        self.fc3 = Dense(512, 10, device)
 
         self.training = True
 
@@ -288,15 +320,18 @@ total_params = sum(p.numel() for p in model.parameters())
 logger.log(f"总参数量: {total_params:,} ({total_params/1e6:.1f}M)")
 
 batch_size = 64  # VGG16 较大，用小 batch
-epochs = 20
+epochs = 30  # 增加 epoch，因为数据增强需要更多训练
 lr = 0.01
+weight_decay = 5e-4  # L2 正则化
 
 train_losses = []
 train_accs = []
 test_accs = []
+best_test_acc = 0
 
 logger.log("\n开始训练...")
-logger.log(f"超参数: batch_size={batch_size}, epochs={epochs}, lr={lr}")
+logger.log(f"超参数: batch_size={batch_size}, epochs={epochs}, lr={lr}, weight_decay={weight_decay}")
+logger.log("改进: 数据增强(翻转+裁剪) + 小FC(512) + L2正则化")
 logger.log("-" * 60)
 
 for epoch in range(epochs):
@@ -314,6 +349,9 @@ for epoch in range(epochs):
         X = X_train_shuffled[i:i+batch_size]
         y = y_train_shuffled[i:i+batch_size]
 
+        # 数据增强
+        X = augment_batch(X)
+
         # 前向
         out = model.forward(X)
         pred = out.argmax(dim=1)
@@ -329,10 +367,10 @@ for epoch in range(epochs):
         # 反向
         loss.backward()
 
-        # 更新参数
+        # 更新参数 (带 L2 正则化)
         with torch.no_grad():
             for param in model.parameters():
-                param -= lr * param.grad
+                param -= lr * (param.grad + weight_decay * param)  # L2 正则化
                 param.grad.zero_()
 
         # 打印进度
@@ -362,10 +400,16 @@ for epoch in range(epochs):
     train_accs.append(train_acc)
     test_accs.append(test_acc)
 
-    logger.log(f"Epoch {epoch}: train_loss={train_loss:.4f}, train_acc={train_acc:.4f}, test_acc={test_acc:.4f}")
+    # 记录最佳
+    if test_acc > best_test_acc:
+        best_test_acc = test_acc
+        best_epoch = epoch
+        logger.log(f"Epoch {epoch}: train_loss={train_loss:.4f}, train_acc={train_acc:.4f}, test_acc={test_acc:.4f} [NEW BEST]")
+    else:
+        logger.log(f"Epoch {epoch}: train_loss={train_loss:.4f}, train_acc={train_acc:.4f}, test_acc={test_acc:.4f}")
 
     # 学习率衰减
-    if (epoch + 1) % 10 == 0:
+    if (epoch + 1) % 15 == 0:
         lr *= 0.1
         logger.log(f"  学习率衰减到 {lr}")
 
@@ -374,8 +418,10 @@ for epoch in range(epochs):
 
 logger.log("\n" + "=" * 60)
 logger.log("=== 最终评估 ===")
-logger.log(f"测试集准确率: {test_accs[-1]:.4f}")
-logger.log(f"最佳测试准确率: {max(test_accs):.4f} (Epoch {test_accs.index(max(test_accs))})")
+logger.log(f"最终测试准确率: {test_accs[-1]:.4f}")
+logger.log(f"最佳测试准确率: {best_test_acc:.4f} (Epoch {best_epoch})")
+logger.log(f"最终训练准确率: {train_accs[-1]:.4f}")
+logger.log(f"过拟合差距: {train_accs[-1] - test_accs[-1]:.4f} (越小越好)")
 
 
 # ==================== 绘制报告 ====================
