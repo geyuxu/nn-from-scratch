@@ -25,7 +25,7 @@ nn-from-scratch/
 | [01_linear_regression](01_linear_regression/) | Linear Regression - Numpy manual gradient & PyTorch autograd | Synthetic + California Housing (R²≈0.6) | [README](01_linear_regression/README.md) |
 | [02_logistic_regression](02_logistic_regression/) | Logistic Regression - Sigmoid & Cross-Entropy | Synthetic + Breast Cancer (97% acc) | [README](02_logistic_regression/README.md) |
 | [03_mlp](03_mlp/) | Multi-Layer Perceptron - Hidden layers & ReLU/Softmax activation | Breast Cancer (99% acc) + Iris (100% acc) + California Housing (R²≈0.7) | [README](03_mlp/README.md) |
-| [04_cnn](04_cnn/) | Convolutional Neural Network - Conv, Pooling & spatial features | MNIST (98.3% acc) + CIFAR-10 | [README](04_cnn/README.md) |
+| [04_cnn](04_cnn/) | Convolutional Neural Network - Conv, Pooling & spatial features | MNIST (98.3% acc) + CIFAR-10 VGG16 (81.4% acc) | [README](04_cnn/README.md) |
 
 ## Environment Setup
 
