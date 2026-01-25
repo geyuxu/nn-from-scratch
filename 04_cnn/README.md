@@ -250,26 +250,18 @@ if test_acc > best_test_acc:
 | Parameters | ~33M | ~15.2M | -54% |
 | Best Epoch | 19 | 40 | - |
 
-### v1 Results (vgg16_cifar10.py)
+### Training Progress: v1 vs v2
 
-| Epoch | Train Loss | Train Acc | Test Acc |
-|-------|------------|-----------|----------|
-| 0 | 1.9950 | 25.0% | 24.2% |
-| 9 | 0.4949 | 83.0% | 63.0% |
-| 19 | 0.0308 | 99.4% | **75.6%** |
+| | v1 (vgg16_cifar10.py) | | | v2 (vgg16_cifar10_v2.py) | | |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Epoch** | **Train Acc** | **Test Acc** | | **Epoch** | **Train Acc** | **Test Acc** |
+| 0 | 25.0% | 24.2% | | 0 | 17.9% | 17.7% |
+| 9 | 83.0% | 63.0% | | 20 | 82.8% | 79.7% |
+| 19 | 99.4% | **75.6%** | | 40 | 82.8% | **81.4%** |
+| | | | | 100 | 82.1% | 80.8% |
 
-**Issue**: Severe overfitting (train 99.4% vs test 75.6%)
-
-### v2 Results (vgg16_cifar10_v2.py)
-
-| Epoch | Train Loss | Train Acc | Test Acc |
-|-------|------------|-----------|----------|
-| 0 | 2.1858 | 17.9% | 17.7% |
-| 20 | 0.4884 | 82.8% | 79.7% |
-| 40 | 0.4803 | 82.8% | **81.4%** |
-| 100 | 0.5060 | 82.1% | 80.8% |
-
-**Success**: Overfitting eliminated, test accuracy improved by 5.8%
+- **v1 Issue**: Severe overfitting (train 99.4% vs test 75.6%)
+- **v2 Success**: Overfitting eliminated, test accuracy improved by 5.8%
 
 ### v1 vs v2 Training Curves
 
