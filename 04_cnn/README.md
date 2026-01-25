@@ -260,8 +260,6 @@ if test_acc > best_test_acc:
 
 **Issue**: Severe overfitting (train 99.4% vs test 75.6%)
 
-![VGG16 CIFAR-10 v1 Result](Figure_vgg16_cifar10.png)
-
 ### v2 Results (vgg16_cifar10_v2.py)
 
 | Epoch | Train Loss | Train Acc | Test Acc |
@@ -272,3 +270,9 @@ if test_acc > best_test_acc:
 | 100 | 0.5060 | 82.1% | 80.8% |
 
 **Success**: Overfitting eliminated, test accuracy improved by 5.8%
+
+### v1 vs v2 Training Curves
+
+| v1 (Overfitting) | v2 (Regularized) |
+|:---:|:---:|
+| ![v1](Figure_vgg16_cifar10.png) | ![v2](Figure_vgg16_cifar10_v2.png) |

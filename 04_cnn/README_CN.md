@@ -260,8 +260,6 @@ if test_acc > best_test_acc:
 
 **问题**：严重过拟合（训练 99.4% vs 测试 75.6%）
 
-![VGG16 CIFAR-10 v1 结果](Figure_vgg16_cifar10.png)
-
 ### v2 结果 (vgg16_cifar10_v2.py)
 
 | Epoch | Train Loss | Train Acc | Test Acc |
@@ -272,3 +270,9 @@ if test_acc > best_test_acc:
 | 100 | 0.5060 | 82.1% | 80.8% |
 
 **成功**：消除过拟合，测试准确率提升 5.8%
+
+### v1 与 v2 训练曲线对比
+
+| v1（过拟合） | v2（正则化） |
+|:---:|:---:|
+| ![v1](Figure_vgg16_cifar10.png) | ![v2](Figure_vgg16_cifar10_v2.png) |
